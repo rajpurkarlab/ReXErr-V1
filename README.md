@@ -1,4 +1,5 @@
-# ReXErr-V1
+# ReXErr-V1: Clinically Meaningful Chest X-Ray Report Errors Derived from MIMIC-CXR
+
 
 Chest X-Ray Report Errors (ReXErr-v1) Dataset -- Version 1 (v1)
 
