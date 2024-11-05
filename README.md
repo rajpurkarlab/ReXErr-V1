@@ -28,7 +28,7 @@ As shown, we collaborated with clinicians in an iterative fashion, constructing 
     - View: Views present of the images associated with the report
     - Original Report: Original report taken from MIMIC-CXR
     - Error Report: Report with errors injected using GPT-4o
-    - Errors Present: Specific errors present within the report. Corresponds to the error categories mentioned above.
+    - Errors Sampled: Errors that were sampled to create the error report. Note that the error report may not contain all of the errors sampled, and for more accurate labeling, see the sentence-level labeling.
 
 **ReXErr-sentence-level**
   - *ReXErr-sentence-level_{train/val/test}.csv* contains the original and error sentences based on the  ReXErr-report-level.csv file corresponding to the train, val, or test set respectively. Each row contains a sentence present within a radiology report, with spliced sentences presented in the same consecutive order that they appear within the original reports. Groups of sentences corresponding to a particular report are listed in ascending subject ID. Each row of the CSV corresponds to the following:
