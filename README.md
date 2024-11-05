@@ -2,7 +2,7 @@
 
 Chest X-Ray Report Errors (ReXErr-v1) Dataset -- Version 1 (v1)
 
-Chest X-Ray Report Errors (ReXErr-v1) is a new dataset based on MIMIC-CXR and constructed using large language models (LLMs). ReXErr-v1 contains synthetic error reports for the vast majority of MIMIC-CXR (200k+ reports). We have obtained permission from PhysioNet to host it. Please do not reshare without permission.
+Chest X-Ray Report Errors (ReXErr-v1) is a new dataset based on MIMIC-CXR and constructed using large language models (LLMs). ReXErr-v1 contains synthetic error reports for the vast majority of MIMIC-CXR (200k+ reports). Please access the dataset through PhysioNet here. This repository contains the code and the prompts used to develop ReXErr-v1.
 
 ## Error Categories
 
@@ -44,19 +44,21 @@ As shown, we collaborated with clinicians in an iterative fashion, constructing 
 
 **Error_Analysis.ipynb** is a jupyter notebook that loads both ReXErr-report-level.csv and ReXErr-sentence-level.csv and illustrates the error distributions as well as the organization of both files.  
 
-## File Organization
+## Code Provided
+
+We provide the code used to both generate the dataset using GPT-4o and sentence-by-sentence splice each report using Llama 3.1. We include the full code as well as the particular prompts used, and demonstrate how the error-specific prompts are combined together to generate errors together. Furthermore, we also include a jupyter notebook that loads both versions of the dataset and walks through the organization of the files.
+
+### File Organization
 
 ```
 ./
 ├── README.md
 ├── ReXErr-report-level
-│   ├── ReXErr-report-level_train.csv
-│   ├── ReXErr-report-level_val.csv
-│   └── ReXErr-report-level_test.csv
+│   ├── ReXErr-report-level-generation.py
+│   ├── ReXErr-report-level-errror_prompts.json
 ├── ReXErr-sentence-level
-│   ├── ReXErr-sentence-level_train.csv
-│   ├── ReXErr-sentence-level_val.csv
-│   └── ReXErr-sentence-level_test.csv
+│   ├── ReXErr-sentence-level-splicing.py
+│   ├── ReXErr-sentence-level-prompts.json
 ├── Error_Analysis.ipynb
 ```
 
