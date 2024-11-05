@@ -53,14 +53,14 @@ We provide the code used to both generate the dataset using GPT-4o and sentence-
 
 ```
 ./
-├── README.md
+├── Error_Analysis.ipynb
 ├── ReXErr-report-level
 │   ├── ReXErr-report-level-generation.py
 │   ├── ReXErr-report-level-errror_prompts.json
 ├── ReXErr-sentence-level
 │   ├── ReXErr-sentence-level-splicing.py
 │   ├── ReXErr-sentence-level-prompts.json
-├── Error_Analysis.ipynb
+├── README.md
 ```
 
 ## Citation:
