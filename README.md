@@ -43,11 +43,9 @@ As shown, we collaborated with clinicians in an iterative fashion, constructing 
     - Label: Label for the sentence, where 0 corresponds to unchanged sentence, 1 corresponds to error sentence, and 2 corresponds to neutral sentence (references prior)
     - Error Type: If an error is present within the Error-Report Sentence, the specific type of error it is
 
-**Error_Analysis.ipynb** is a jupyter notebook that loads both ReXErr-report-level.csv and ReXErr-sentence-level.csv and illustrates the error distributions as well as the organization of both files.  
-
 ## Code Provided
 
-We provide the code used to both generate the dataset using GPT-4o and sentence-by-sentence splice each report using Llama 3.1. We include the full code as well as the particular prompts used, and demonstrate how the error-specific prompts are combined together to generate errors together. Furthermore, we also include a jupyter notebook that loads both versions of the dataset and walks through the organization of the files.
+We provide the code used to both generate the dataset using GPT-4o and sentence-by-sentence splice each report using Llama 3.1. We include the full code as well as the particular prompts used, and demonstrate how the error-specific prompts are combined together to generate errors together.
 
 ### File Organization
 
