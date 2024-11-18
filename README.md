@@ -23,25 +23,22 @@ As shown, we collaborated with clinicians in an iterative fashion, constructing 
 
 **ReXErr-report-level**
   - *ReXErr-report-level_{train/val/test}.csv* contains the original and error reports from a filtered version of the MIMIC-CXR dataset corresponding to the train, val, or test set respectively. Each row contains a unique radiology report, which corresponds to multiple images present within MIMIC-CXR. Reports are listed in ascending subject ID. Each row of the CSV corresponds to the following:
-    - Dicom ID: Dicom ID(s) for the associated report
-    - Study ID: Study ID taken from MIMIC-CXR
-    - Subject ID: Subject ID taken from MIMIC-CXR
-    - View: Views present of the images associated with the report
-    - Original Report: Original report taken from MIMIC-CXR
-    - Error Report: Report with errors injected using GPT-4o
-    - Errors Sampled: Errors that were sampled to create the error report. Note that the error report may not contain all of the errors sampled, and for more accurate labeling, see the sentence-level labeling.
+    - dicom_id: Dicom ID(s) for the associated report
+    - study_id: Study ID taken from MIMIC-CXR
+    - subject_id: Subject ID taken from MIMIC-CXR
+    - original_report: Original report taken from MIMIC-CXR
+    - error_report: Report with errors injected using GPT-4o
+    - errors_sampled: Errors that were sampled to create the error report. Note that the error report may not contain all of the errors sampled, and for more accurate labeling, see the sentence level labeling.
 
 **ReXErr-sentence-level**
   - *ReXErr-sentence-level_{train/val/test}.csv* contains the original and error sentences based on the  ReXErr-report-level.csv file corresponding to the train, val, or test set respectively. Each row contains a sentence present within a radiology report, with spliced sentences presented in the same consecutive order that they appear within the original reports. Groups of sentences corresponding to a particular report are listed in ascending subject ID. Each row of the CSV corresponds to the following:
-    - Dicom ID: Dicom ID(s) for the associated report
-    - Study ID: Study ID taken from MIMIC-CXR
-    - Subject ID: Subject ID taken from MIMIC-CXR
-    - View: Views present of the images associated with the report
-    - Index: Index of the sentence in the present row within the full error report
-    - Original Sentence: Original sentence from the given MIMIC-CXR report
-    - Error-Report Sentence: Sentence from the error-injected report. Note that the sentence may not necessarily contain an error, but is taken from the error-injected report.
-    - Label: Label for the sentence, where 0 corresponds to unchanged sentence, 1 corresponds to error sentence, and 2 corresponds to neutral sentence (references prior)
-    - Error Type: If an error is present within the Error-Report Sentence, the specific type of error it is
+    - dicom_id: Dicom ID(s) for the associated report
+    - study_id: Study ID taken from MIMIC-CXR
+    - subject_id: Subject ID taken from MIMIC-CXR
+    - original_sentence: Original sentence from the given MIMIC-CXR report
+    - error_sentence: Sentence from the error-injected report. Note that the sentence itself may not necessarily contain an error, but it originates from the error-injected report
+    - error_present: Indicator for whether an error is present in the sentence, where 0 corresponds to unchanged sentence, 1 corresponds to error sentence, and 2 corresponds to neutral sentence (references a prior or does not contain any clinically relevant indications/findings)
+    - error_type: If an error is present within the error_sentence, the specific type of error it is
 
 ## Code Provided
 
@@ -51,7 +48,6 @@ We provide the code used to both generate the dataset using GPT-4o and sentence-
 
 ```
 ./
-├── Error_Analysis.ipynb
 ├── ReXErr-report-level
 │   ├── ReXErr-report-level-generation.py
 │   ├── ReXErr-report-level-errror_prompts.json
