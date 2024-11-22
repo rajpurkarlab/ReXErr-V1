@@ -41,8 +41,7 @@ def add_multiple_errors(report, errors):
 
 
 if __name__ == "__main__":    
-    # input your respective values here:
-
+    
     # load in the prompt dictionary
     with open('ReXErr-report-level-error_prompts.json', 'r') as file:
         error_prompts = json.load(file)
