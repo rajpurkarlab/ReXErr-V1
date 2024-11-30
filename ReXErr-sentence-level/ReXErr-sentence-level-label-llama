@@ -1,0 +1,202 @@
+import transformers
+import torch
+import pandas as pd
+import json
+import re
+import nltk
+from nltk.corpus import wordnet
+from utils import devices_pattern, false_negation, find_homophones_and_typos
+
+def setup_pipeline():
+    return transformers.pipeline(
+        "text-generation",
+        model="meta-llama/Meta-Llama-3.1-8B-Instruct",
+        model_kwargs={"torch_dtype": torch.bfloat16},
+        device_map="auto",
+    )
+
+def generate_response(pipeline, sys_prompt, input_message):
+    messages = [
+        {"role": "system", "content": sys_prompt},
+        {"role": "user", "content": input_message},
+    ]
+    
+    outputs = pipeline(
+        messages,
+        max_new_tokens=256,
+    )
+    return outputs[0]["generated_text"][-1]['content']
+
+
+def postprocess_labels(df):
+    """
+    Postprocess the labels based on various conditions and patterns
+    """
+    # First pass: Handle null original reports
+    for index, row in df.iterrows():
+        if pd.isna(row['Original Report']):
+            if re.search(devices_pattern, row['Error Report'], re.IGNORECASE):
+                df.at[index, 'Label'] = 1
+                df.at[index, 'Error Type'] = "Add medical device"
+            elif not pd.isna(row['Error Report']):
+                df.at[index, 'Label'] = 1
+                df.at[index, 'Error Type'] = "False prediction"
+
+    # Second pass: Handle false findings
+    for index, row in df.iterrows():
+        if row["Error Type"] == "False finding":
+            if re.search(false_negation, row['Error Report'], re.IGNORECASE):
+                df.at[index, 'Label'] = 1
+                df.at[index, 'Error Type'] = "False negation"
+            else:
+                df.at[index, 'Label'] = 1
+                df.at[index, 'Error Type'] = "False prediction"
+
+    # Third pass: Handle typos and homophones
+    for index, row in df.iterrows():
+        if row["Error Type"] == "Add typo":
+            results = find_homophones_and_typos(row['Original Report'], row['Error Report'])
+            
+            if len(results["typos"]) == 0 and len(results["homophones"]) > 0:
+                df.at[index, 'Error Type'] = "Add Homophone"
+                df.at[index, 'Label'] = 1
+    return df
+
+
+SYS_PROMPT = """You will be given two sentences, a ground truth sentence and an error sentence. Your job is to label the type of error inserted into the error sentence. Return a json with {label: X, error type: Y}. 
+
+                The label is determined by the following:
+                0: unchanged sentence
+                1: changed sentence
+                2: neutral sentence
+
+                Unchanged sentences (label 0) are sentences where there are no errors in the error sentence, including no typos, no grammatical errors, and no factual errors. If the sentence has syntactic changes, such as changes in word order, punctuation, or capitalization, mark it as unchanged. 
+                Changed sentences (label 1) are sentences where there are errors in the error sentence compared to the ground truth sentence, including typos, grammatical errors, and factual errors. If the sentence has any errors, mark it as changed.
+                Neutral sentences (label 2) are sentences that offer comparisons, suggestions, or recommendations that are not necessarily correct or incorrect and should therefore be labeled as neutral. If there is any mention of the words "previous" or "prior" mark the sentence as having a reference to a prior. NOTE: even if there is a change in the sentence, if you believe it falls in the neutral category, mark it in that category. You should also screen for sentences that contain comparisons between current findings and previous findings. These include any sentences that explicitly refer to a different time point (usually using words such as "since" or "compared to"). Also label sentences which contain no clinical findings as neutral. See examples number 5 and 6 below for reference of a sentence without clinical findings. Here are the examples of sentences that you would classify as neutral:
+                1. "Unexplained severe rightward deviation of the trachea without tracheal narrowing at the level of the thoracic inlet, not markedly changed since ": this sentence is neutral because it designates a "change since", referencing an earlier time point
+                2. "Stable COPD": this sentence is neutral because the word "stable" is a comparison to a previous time point.
+                3. "There is a high level of focal consolidation which has been stable since ": this sentence is neutral because it indicates "stable since" a particular past time point
+                4. "Compared to chest radiographs since ": this sentence is neutral because it references prior radiographs
+                5. "Received note from Dr. on ": this sentence is neutral because it contains no clinical findings.
+                6. "Dr. communicated the above results to Dr. at 8:55 am on by telephone."
+
+                Error types fall into the following 9 error classes. Please choose the one that is most relevant whenever there is a change in the sentence. 
+
+                1. Add medical device
+                2. Change Name of Already Present Device
+                Example: {ORIGINAL SENTENCE: Left-sided AICD device is noted with single lead terminating in unchanged position in the right ventricle. ERROR SENTENCE: Left-sided dual-chamber pacemaker device is noted with leads terminating in the right atrium and right ventricle. EXPLANATION: Single chamber, AICD not pacemaker}
+                Example: {ORIGINAL SENTENCE: Findings: As compared to the previous radiograph, there is evidence of an unchanged PICC line placed over the right upper extremity. ERROR SENTENCE: Findings: As compared to the previous radiograph, there is evidence of an unchanged chest tube placed over the right upper extremity. EXPLANATION: PICC line replaced with chest tube}
+                3. Change Position of Already Present Device
+                Example: {ORIGINAL SENTENCE: Right IJ central venous catheter projects over the right atrium. ERROR SENTENCE: Right IJ central venous catheter ends in the mid SVC. EXPLANATION: Right IJ position lower than mentioned}
+                4. Change Already Present Severity: eg. from mild to moderate or severe or vice versa
+                Example: {ORIGINAL SENTENCE: Moderate pulmonary edema. ERROR SENTENCE: Mild pulmonary edema. EXPLANATION: Moderate edema is correct so the error report has changed to mild edema.}
+                5. Change location: e.g., changing 'right' to 'left' or 'lateral' to 'medial', etc. (note that this applies for a location change of a finding, separate from changing the position of a medical device, which is a separate category)
+                6. False finding: changing something from normal to not normal or vice versa; creating a fake finding from the ground truth sentence.
+                Example: {ORIGINAL SENTENCE: No pneumothorax. ERROR SENTENCE: Severe pneumothorax. EXPLANATION: No pneumothorax is a normal finding. The error report has added severe pneumothorax, which turned an original negative finding into a positive finding.}
+                Example: {ORIGINAL SENTENCE: There are no new lung nodules identified. ERROR SENTENCE: There are bilateral lung nodules identified. EXPLANATION: The original sentence is negative for lung nodules. The error report has added bilateral lung nodules, which turned an original negative finding into a positive finding.}
+                Example: {ORIGINAL SENTENCE: Right hilar vessels are still enlarged, perhaps due to pulmonary arterial hypertension. ERROR SENTENCE: Right hilar vessels are still enlarged, with persistent bibasilar opacities noted. EXPLANATION: The original sentence is negative for bibasilar opacities. The error report has added bibasilar opacities, which turned an original negative finding into a positive finding.}
+                Example: {ORIGINAL SENTENCE: Clips project over the left lung, potentially within the breast. ERROR SENTENCE: No clips seen EXPLANATION: Positive finding of clips projecting over the left lung was removed}
+                7. Change measurement: eg. from mm to cm
+                8. Add typo
+                Example: {ORIGINAL SENTENCE: Wrong positioning of tube. ERROR SENTENCE: Wrong poisitioning of tube. EXPLANATION: Typo in the word poisitioning.}
+                9. Not applicable- the sentences are the same/very similar
+
+                Here are examples:
+                Ground Truth Sentence: Lung volumes are low.
+                Error Sentence: Lung volumes are normal.
+                Explanation: The ground truth sentence is positive for low lung volumes. The error report has changed low to normal, which is a negative finding. Thus this is a false negation.
+                Output: {"label": 1, "error type": 6}
+
+                Ground Truth Sentence: The lungs are clear of focal consolidation, pleural effusion or pneumothorax.
+                Error Sentence: Small left pleural effusion is seen. 
+                Explanation: The original sentence is negative for pleural effusion. The error report has added a small left pleural effusion, which turned an original negative finding into a positive finding.
+                Output: {"label": 1, "error type": 6}
+
+                Ground Truth Sentence: There is no focal consolidation, effusion, or pneumothorax.
+                Error Sentence: No focal consolidation, effusion, or pneumothorax.
+                Explanation: The sentences are syntatically the same, with no typos or gramamtical errors.
+                Output: {"label": 0, "error type": 9}
+
+                Ground Truth Sentence: No large effusion or pneumothorax is seen.
+                Error Sentence: No large effusion or pneumothorax is scene.
+                Explanation: The error sentence contains a typo; seen is written as scene.
+                Output: {"label": 1, "error type": 8}
+
+                Ground Truth Sentence: The tube is in correct position.
+                Error Sentence: The tube is approximately 1 cm above the carina.
+                Explanation: The error sentence contains a location change for a medical device, the tube.
+                Output: {"label": 1, "error type": 3}
+                    
+                Note that if the label is 0 (unchanged sentence), the error type is always 9 (not applicable). 
+                A label of neutral (2) should only be given to sentences that are not clinical findings or contain priors. Do not give neutral labels to sentences that contain clinical findings, like "no overt/definite pulmonary edema" or "heart size is top-normal".
+                ONLY RETURN THE JSON, NOT ANY REASONING OR COMMENTS.
+            """
+
+USER_PROMPT = """
+            Ground Truth Sentence: {gt_sentence}
+            Error Sentence: {error_sentence}
+            """
+
+if __name__ == "__main__":
+
+    # Download wordnet if not available
+    try:
+        wordnet.all_synsets()
+    except LookupError:
+        nltk.download('wordnet')
+
+    # Initialize the pipeline
+    pipeline = setup_pipeline()
+
+    # Sample ground truth and error sentences from splicing.py
+    sample_gt_sentences = [
+        "Impression: Compared to chest radiographs since ___, most recently ___. ",
+        "Large right and moderate left pleural effusions and severe bibasilar atelectasis are unchanged. ",
+        "Cardiac silhouette is obscured.",
+        "No pneumothorax.",
+        "Pulmonary edema is mild, obscured radiographically by overlying abnormalities."
+    ]
+    sample_error_sentences = [
+        "Impression: Compared to chest radiographs since ___, most recently ___. ",
+        "Small right and left pleural effusions and severe bibasilar atelectasis are unchanged. ",
+        "Cardiac silhouette is obscured."
+        "No pneumothorax.",
+        "Pulmonary edema is severe, obscured radiographically by overlying abnormalities."
+    ]
+
+    error_dict = {
+        1: "Add medical device",
+        2: "Change name of device",
+        3: "Change position of device",
+        4: "Change severity",
+        5: "Change location",
+        6: "False finding",
+        7: "Change measurement",
+        8: "Add typo",
+        9: "Not applicable",
+    }
+
+    # Generate initial labels using LLaMA
+    results = []
+    for gt_sentence, error_sentence in zip(sample_gt_sentences, sample_error_sentences):
+        user_prompt = USER_PROMPT.format(gt_sentence=gt_sentence, error_sentence=error_sentence)
+        response = generate_response(pipeline, SYS_PROMPT, user_prompt)
+        results.append(response)
+
+    # Create DataFrame from results
+    df = pd.DataFrame({
+        'Original Report': sample_gt_sentences,
+        'Error Report': sample_error_sentences,
+        'LLaMA Response': results
+    })
+
+    # Extract labels and error types from LLaMA responses
+    df['Label'] = df['LLaMA Response'].apply(lambda x: json.loads(x)['label'])
+    df['Error Type'] = df['LLaMA Response'].apply(lambda x: error_dict[json.loads(x)['error type']])
+
+    # Postprocess the labels
+    df = postprocess_labels(df)
+
+    # Save results
+    df.to_csv('processed_medical_reports.csv', index=False)
+    print("Processing complete. Results saved to 'processed_medical_reports.csv'")
