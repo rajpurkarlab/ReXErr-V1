@@ -42,7 +42,7 @@ As shown, we collaborated with clinicians in an iterative fashion, constructing 
 
 ## Code Provided
 
-We provide the code used to both generate the dataset using GPT-4o and sentence-by-sentence splice each report using Llama 3.1. We include the full code as well as the particular prompts used, and demonstrate how the error-specific prompts are combined together to generate errors together.
+We provide the code used to both generate the dataset using GPT-4o and sentence-by-sentence splice and label each report. We include an option for labeling the spliced reports using either Llama 3.1 (more accurate) or regex. We include the full code as well as the particular prompts used, and demonstrate how the error-specific prompts are combined together to generate errors together.
 
 ### File Organization
 
@@ -53,7 +53,9 @@ We provide the code used to both generate the dataset using GPT-4o and sentence-
 │   ├── ReXErr-report-level-errror_prompts.json
 ├── ReXErr-sentence-level
 │   ├── ReXErr-sentence-level-splicing.py
-│   ├── ReXErr-sentence-level-prompts.json
+│   ├── ReXErr-sentence-level-label-regex.py
+│   ├── ReXErr-sentence-level-label-llama.py
+│   ├── utils.py
 ├── README.md
 ```
 
