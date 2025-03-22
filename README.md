@@ -1,4 +1,4 @@
-# ReXErr-V1: Clinically Meaningful Chest X-Ray Report Errors Derived from MIMIC-CXR
+# ReXErr-v1: Clinically Meaningful Chest X-Ray Report Errors Derived from MIMIC-CXR
 
 
 Chest X-Ray Report Errors (ReXErr-v1) Dataset -- Version 1 (v1)
@@ -61,16 +61,21 @@ We provide the code used to both generate the dataset using GPT-4o and sentence-
 
 ## Citation:
 
-Please cite the following if you use ReXErr in your work or find it useful, along with the standard citation for PhysioNet.
+Please cite the following if you use ReXErr in your work or find it useful, along with the citation for the datset on PhysioNet listed below.
 
 ```
 title={ReXErr: Synthesizing Clinically Meaningful Errors in Diagnostic Radiology Reports},
 author={Rao, Vishwanatha M and Zhang, Serena and Acosta, Julian N and Adithan, Subathra and Rajpurkar, Pranav},
-journal={arXiv preprint arXiv:2409.10829},
-year={2024}
+journal={Pacific Symposium on Biocomputing},
+pages={70--81},
+year={2025}
 ```
 
 ```
-PhysioNet Citation
+title={ReXErr-v1: Clinically Meaningful Chest X-Ray Report Errors Derived from MIMIC-CXR},
+author={Rao, Vishwanatha M and Zhang, Serena and Acosta, Julian N and Adithan, Subathra and Rajpurkar, Pranav},
+journal={PhysioNet},
+year={2025},
+DOI={https://doi.org/10.13026/9dns-vd94}
 ```
 
